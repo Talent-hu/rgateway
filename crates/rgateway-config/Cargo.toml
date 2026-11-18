@@ -1,0 +1,30 @@
+[package]
+name = "rgateway-config"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "YAML schema, loading, validation, compilation and hot reload for rgateway"
+
+[dependencies]
+rgateway-core.workspace = true
+rgateway-router.workspace = true
+arc-swap.workspace = true
+dashmap.workspace = true
+http.workspace = true
+ipnet.workspace = true
+notify.workspace = true
+regex.workspace = true
+serde.workspace = true
+serde_yaml.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tower.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
+serde_json.workspace = true
+bytes.workspace = true
+http-body.workspace = true

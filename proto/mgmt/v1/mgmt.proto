@@ -1,0 +1,126 @@
+// 管理面 gRPC 契约：与 REST `/mgmt/v1/*` 端点一一对应（P10 管理面板的
+// gRPC 半边）。字段名与 REST 信封 `data` 的键完全一致，便于双协议对照。
+syntax = "proto3";
+
+package rgateway.mgmt.v1;
+
+// 管理面服务：Health/Snapshot/Routes/Breakers/ResetBreakers/Stats 六个
+// 一元 RPC，语义与 REST 对应端点完全一致（含 reset 幂等、熔断器排序）。
+service MgmtService {
+  // GET /health：存活探针，恒返回 status="ok"。
+  rpc Health(HealthRequest) returns (HealthResponse);
+  // GET /mgmt/v1/snapshot：版本、失败重载数、数据面监听、路由摘要。
+  rpc Snapshot(SnapshotRequest) returns (SnapshotResponse);
+  // GET /mgmt/v1/routes：按匹配顺序的路由摘要。
+  rpc Routes(RoutesRequest) returns (RoutesResponse);
+  // GET /mgmt/v1/breakers：逐路由逐实例熔断状态（实例按 id 排序）。
+  rpc Breakers(BreakersRequest) returns (BreakersResponse);
+  // POST /mgmt/v1/breakers/reset：重置熔断器（未知路由/实例幂等返回 0）。
+  rpc ResetBreakers(ResetBreakersRequest) returns (ResetBreakersResponse);
+  // GET /mgmt/v1/stats：版本/失败重载/路由数/熔断器聚合。
+  rpc Stats(StatsRequest) returns (StatsResponse);
+}
+
+// ---- Health ----
+
+message HealthRequest {}
+
+message HealthResponse {
+  // 固定 "ok"。
+  string status = 1;
+}
+
+// ---- 路由摘要（snapshot / routes 共用）----
+
+message RouteSummary {
+  // 路由 id。
+  string id = 1;
+  // 匹配顺序权重（升序生效）。
+  int32 order = 2;
+  // 目标 URI 字符串形态（lb://name 或 http(s) URI）。
+  string uri = 3;
+  // 协议提示标签（auto / http1 / http2 / ws / grpc / ...）。
+  string protocol = 4;
+}
+
+// ---- Snapshot ----
+
+message SnapshotRequest {}
+
+message SnapshotResponse {
+  // 配置快照版本（从 1 起，每次成功重载加一）。
+  uint64 version = 1;
+  // 失败的重载次数。
+  uint64 failed_reloads = 2;
+  // 数据面监听地址。
+  string listen = 3;
+  // 路由数量。
+  uint64 route_count = 4;
+  // 路由摘要（按匹配顺序）。
+  repeated RouteSummary routes = 5;
+}
+
+// ---- Routes ----
+
+message RoutesRequest {}
+
+message RoutesResponse {
+  // 路由摘要（按匹配顺序）。
+  repeated RouteSummary routes = 1;
+}
+
+// ---- Breakers ----
+
+// 单个实例的熔断状态（closed / open / half_open）。
+message BreakerEntry {
+  // 实例 id。
+  string instance_id = 1;
+  // 状态标签。
+  string state = 2;
+}
+
+// 单条路由的熔断状态列表。
+message RouteBreakers {
+  // 路由 id。
+  string route_id = 1;
+  // 实例熔断状态（按实例 id 升序）。
+  repeated BreakerEntry breakers = 2;
+}
+
+message BreakersRequest {}
+
+message BreakersResponse {
+  // 逐路由的熔断状态（按路由匹配顺序）。
+  repeated RouteBreakers routes = 1;
+}
+
+// ---- ResetBreakers ----
+
+message ResetBreakersRequest {
+  // 路由 id（必填，空串视为非法请求）。
+  string route_id = 1;
+  // 指定实例；缺省表示重置该路由全部实例。
+  optional string instance_id = 2;
+}
+
+message ResetBreakersResponse {
+  // 实际重置的熔断器个数（未知路由/实例幂等返回 0）。
+  uint64 reset = 1;
+}
+
+// ---- Stats ----
+
+message StatsRequest {}
+
+message StatsResponse {
+  // 配置快照版本。
+  uint64 version = 1;
+  // 失败的重载次数。
+  uint64 failed_reloads = 2;
+  // 路由数量。
+  uint64 route_count = 3;
+  // 熔断器总数。
+  uint64 breaker_count = 4;
+  // 处于 open 态的熔断器数量（half_open 是恢复探测，不计入）。
+  uint64 breaker_open_count = 5;
+}

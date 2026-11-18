@@ -1,0 +1,28 @@
+[package]
+name = "rgateway-filters"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "内置过滤器运行时：RateLimit / Timeout / BodyLimit / CircuitBreaker / Retry"
+
+[dependencies]
+rgateway-core = { workspace = true }
+rgateway-config = { workspace = true }
+tower = { workspace = true }
+http = { workspace = true }
+bytes = { workspace = true }
+http-body = { workspace = true }
+http-body-util = { workspace = true }
+tokio = { workspace = true }
+futures-util = { workspace = true }
+dashmap = { workspace = true }
+governor = { workspace = true }
+ipnet = { workspace = true }
+jsonwebtoken = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
+serde_yaml = { workspace = true }
+base64 = { workspace = true }

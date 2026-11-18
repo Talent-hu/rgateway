@@ -1,0 +1,46 @@
+[package]
+name = "rgateway-server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Runnable gateway binary layer: protocol detection, request dispatch, filter stubs and bootstrap for rgateway"
+# 二进制名显式声明为 rgateway（[[bin]] 覆盖默认的包名同名自动发现）。
+autobins = false
+
+[[bin]]
+name = "rgateway"
+path = "src/main.rs"
+
+[dependencies]
+rgateway-core.workspace = true
+rgateway-router.workspace = true
+rgateway-config.workspace = true
+rgateway-proxy.workspace = true
+rgateway-obs.workspace = true
+rgateway-filters.workspace = true
+rgateway-mgmt.workspace = true
+http.workspace = true
+http-body.workspace = true
+http-body-util.workspace = true
+hyper.workspace = true
+hyper-util.workspace = true
+tower.workspace = true
+tokio.workspace = true
+bytes.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+clap.workspace = true
+rustls.workspace = true
+tokio-rustls.workspace = true
+rustls-pemfile.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
+serde_json.workspace = true
+tonic.workspace = true
+uuid.workspace = true
+metrics.workspace = true
+metrics-exporter-prometheus.workspace = true
+rcgen = "0.13"

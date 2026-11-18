@@ -1,0 +1,22 @@
+/* 全局样式：页面底色与排版微调（图表令牌见 src/charts/chartTheme.ts） */
+:root {
+  --ui-page-plane: #f9f9f7;
+  --ui-chart-surface: #fcfcfb;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--ui-page-plane);
+  font-family: system-ui, -apple-system, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* 图表卡片内部留白收敛，让绘图区更宽 */
+.arco-card-body > div:has(> .recharts-responsive-container) {
+  padding: 4px 0 0;
+}

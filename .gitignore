@@ -1,0 +1,9 @@
+/target
+*.profraw
+*.profdata
+**/*.rs.bk
+*.pdb
+Cargo.lock.bak
+.idea/
+.vscode/
+*.swp

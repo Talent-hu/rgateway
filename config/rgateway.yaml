@@ -1,0 +1,72 @@
+# rgateway example configuration
+#
+# All relative paths (certs, jwks, transcoding descriptors) are resolved
+# against this file's directory. Changes are hot-reloaded: the parent
+# directory is watched (300ms debounce) and a bad edit keeps the previous
+# running configuration.
+#
+# Filter chain order is canonical and NOT the order written below:
+#   Compression -> CORS -> RateLimit -> Auth -> Route(rewrite/header/limit)
+#   -> Deadline(total) -> Retry -> Target(LB) -> CircuitBreaker -> Timeout
+#   -> protocol handler
+# Filters are grouped by slot automatically; within a slot the config
+# order is preserved.
+
+server:
+  listen: "0.0.0.0:8080"
+  http2: { max_concurrent_streams: 1024, initial_stream_window_size: 1MB }
+  limits: { max_request_body: 10MB, max_concurrent_requests: 4096, max_retry_buffer: 1MB }
+  timeouts: { connect: 3s, request_default: 30s, graceful_shutdown: 30s, ws_handshake: 10s }
+  tls: { enabled: false, cert: "", key: "", client_auth: none }
+
+discovery:
+  providers:
+    - type: static
+      services:
+        user-svc:
+          - { address: "127.0.0.1:50051", weight: 100 }
+          - { address: "127.0.0.1:50052", weight: 100 }
+
+defaults:
+  load_balancer: smooth_wrr
+  request_timeout: 30s
+  filters:
+    - { name: CircuitBreaker, sliding_window: 20, failure_rate: 50%, min_calls: 10,
+        open_duration: 5s, half_open_max_calls: 3 }
+
+routes:
+  # Plain HTTP route with rewrite, per-client rate limit, retry and JWT auth.
+  - id: user-http
+    order: 1
+    uri: "lb://user-svc"
+    predicates:
+      - "Path=/api/users/**, /api/orders/**"
+      - "Method=GET,POST"
+    filters:
+      - { name: RewritePath, regex: "/api/(?<segment>.*)", replacement: "/${segment}" }
+      - "RateLimit=key:client_ip,rate:100,period:1s"
+      - { name: Retry, retries: 3, methods: [GET, HEAD], statuses: [502, 503, 504],
+          grpc_statuses: [14], backoff: { initial: 50ms, max: 2s, multiplier: 2, jitter: full } }
+      - { name: JwtAuth, issuer: "https://idp.example.com", audience: gw, jwks_file: ./jwks.json }
+
+  # Transparent gRPC route (unary + streaming) with a per-attempt timeout.
+  - id: user-grpc
+    uri: "lb://user-svc"
+    protocol: auto
+    predicates: [ "Path=/helloworld.Greeter/*" ]
+    filters:
+      - { name: Timeout, per_attempt: 5s }
+
+  # REST/JSON <-> gRPC transcoding via the protobuf descriptor set.
+  - id: user-rest
+    uri: "lb://user-svc"
+    predicates: [ "Path=/v1/**" ]
+    transcoding:
+      descriptor: "./proto/descriptor.bin"
+      rules: [{ selector: "helloworld.Greeter/SayHello", post: "/v1/echo", body: "*" }]
+
+observability:
+  access_log: { enabled: true, format: json }
+  metrics: { enabled: true, path: /metrics }
+
+mgmt: { listen: "127.0.0.1:9090", grpc: true }

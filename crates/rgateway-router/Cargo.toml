@@ -1,0 +1,16 @@
+[package]
+name = "rgateway-router"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Route table matching and ant-style path patterns for rgateway"
+
+[dependencies]
+rgateway-core.workspace = true
+http.workspace = true
+
+[dev-dependencies]
+# Needed only to construct `BoxedService` test doubles (tower::service_fn);
+# the matcher itself is dependency-free by design.
+tower.workspace = true
